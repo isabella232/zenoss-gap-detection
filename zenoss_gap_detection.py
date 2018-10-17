@@ -82,7 +82,7 @@ class loadConfig():
             
         return configuration
 
-configValues=loadConfig(section=sys.argv[1])
+configValues=loadConfig(sys.argv[1],('' if 'HOME' not in os.environ else os.environ['HOME']+'/creds.cfg'))
 
 envhosts={configValues.config['url'].split('.')[1]}
 scriptrole=sys.argv[2]
