@@ -358,6 +358,14 @@ while startover==True:
             else:
                 currenttime=timeiterationstart
             groupedpingcount=[0,0,0,0,0,0,0,0,0,0,0,0]
+            posttokafka='validator,collector='+scriptrole+',environment='+envhost+' gapcount=0,gapeendtime='+str(int(currenttime))+ ' ' + str(int(currenttime*1000000000))
+            print(posttokafka)
+            log.info({'kafka signal post':posttokafka})
+            try:
+                send = producer.send('lineformat', bytes(posttokafka, 'utf-8'))
+            except:
+                log.error({'ConnectionError':str(sys.exc_info()[0])})
+                
             for device in devlist[envhost]:
                 #stophere+=1
                 devdataname=device[0][device[0].rindex('/')+1:]
