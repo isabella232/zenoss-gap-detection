@@ -1,9 +1,0 @@
-[default]
-url=https://zenoss5.zenossmaster:443/
-username=username
-password=password
-ssl_verify=False
-timeout=5
-retries=4
-classes=/zport/dmd/Devices/Server/Microsoft/Windows/
-kafka=kafkaserver:9092
