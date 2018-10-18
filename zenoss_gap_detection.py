@@ -358,7 +358,7 @@ while startover==True:
         else:
             currenttime=timeiterationstart
         groupedpingcount=[0,0,0,0,0,0,0,0,0,0,0,0]
-        posttokafka='validator,collector='+scriptmode+',environment='+envhost+' gapcount=0,gapeendtime='+str(int(currenttime))+ ' ' + str(int(currenttime*1000000000))
+        posttokafka='validator,collector='+scriptmode+',environment='+envhost+' gapcount=0,gapendtime='+str(int(currenttime))+ ' ' + str(int(currenttime*1000000000))
         print(posttokafka)
         log.info({'kafka signal post':posttokafka})
         try:
