@@ -13,7 +13,7 @@ import configparser
 try:
     sys.argv[1]
 except:
-    sys.argv = [sys.argv[0], 'default', 'historical']#, 1539770700]#present,historical,cleanup,pointforward,point
+    sys.argv = [sys.argv[0], 'default', 'point', 1539849300]#present,historical,cleanup,pointforward,point
 
 
 class loadConfig():
@@ -329,7 +329,7 @@ while startover==True:
             iterationtarget=sys.argv[3]+1
             iterationlimit=1
         else:
-            iterationtarget=time.time()#a little confusing because historical is set back 15 minutes, but I think I just need to run to present for...present scriptrole
+            iterationtarget=time.time()-15*60# can only run up to then due to difference in "present" calculation in real-time
             iterationlimit=10000#arbitrary large for over 30 days
 
     #for timepoint in {1538730900}:#1538694900}:#1538677800,1538678100,1538678400,1538678700,1538679300,1538679600}:
@@ -584,7 +584,12 @@ while startover==True:
                                     #    devname=devname.replace('.','-')
                                     devname=devname.replace(' ','-')
                                     nospaceclass=currentClass[currentClass.index(' ')+1:].replace(' ','-')
-                                    if currenttime-lastpointtime>11*60:
+                                    #if scriptrole=='present':
+                                    #    lastpointtime+=60*5#move it forward 5 minutes to be consistent with historical
+                                    # unfortunately that will set ultra-current datapoints (e.g. <5 minutes) to negative, throwing off the way everything
+                                    # else is done, so I need to think about this more. For now if I just set the flag so that pattern is the same for
+                                    # the ones flagged, you'll have to use the type of run for that point to determine how to interpret the time values. 
+                                    if currenttime-lastpointtime>11*60 or (currenttime-lastpointtime>6*60 and scriptrole!='present'):
                                         missedcount='1'
                                     else:
                                         missedcount='0'
