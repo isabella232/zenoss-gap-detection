@@ -512,7 +512,7 @@ while startover==True:
                                         intervalpoint=int((timewindowend-180-(lostpoints-pointstoallocate)*5*60)/5/60)*5*60
                                         posttokafka='validator,collector='+metriclongname[0:metriclongname.index(
                                             '/')]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' gapcount='+(
-                                                '1' if pointstoallocate!=0 else '0')+',gapeendtime='+str(timewindowend)+posttotalstring+' ' + str(intervalpoint*1000000000)
+                                                '1' if pointstoallocate!=0 else '0')+',gapendtime='+str(timewindowend)+posttotalstring+' ' + str(intervalpoint*1000000000)
                                         print(posttokafka)
                                         if posttotalstring!='':
                                             log.info({'kafka first post':posttokafka})
