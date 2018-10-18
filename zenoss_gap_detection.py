@@ -13,7 +13,7 @@ import configparser
 try:
     sys.argv[1]
 except:
-    sys.argv = [sys.argv[0], 'default', 'both', 'realtime', 1539849300, 1539849300]#late,gap,both;realtime,cleanup,pointforward,point,range
+    sys.argv = [sys.argv[0], 'default', 'gap', 'point', 1539880800, 1539849300]#late,gap,both;realtime,cleanup,pointforward,point,range
 
 
 class loadConfig():
@@ -405,7 +405,7 @@ while startover==True:
                     print('Nothing returned for pointlist.')
                     log.error({'Nothing returned in':'pointlist'})
                     
-                # ---- historical gap list expansion
+                # ---- gap list expansion
 
                 if scriptmode in {'gap','both'}:
                     previouslostpoints=0
@@ -527,7 +527,7 @@ while startover==True:
                                         if pointstoallocate==0:
                                             pointstoallocate=-1
 
-                # --- historical gap list expansion end
+                # --- gap list expansion end
 
                 currenttime=pointlist['endTimeActual']
                 groupedpingevents=[currenttime-60*5,currenttime-60*10,currenttime-60*15,
@@ -585,7 +585,7 @@ while startover==True:
                                 devname=devname.replace(' ','-')
                                 nospaceclass=currentClass[currentClass.index(' ')+1:].replace(' ','-')
                                 #if scriptrole=='present':
-                                #    lastpointtime+=60*5#move it forward 5 minutes to be consistent with historical
+                                #    lastpointtime+=60*5#move it forward 5 minutes to be consistent with historical/gap
                                 # unfortunately that will set ultra-current datapoints (e.g. <5 minutes) to negative, throwing off the way everything
                                 # else is done, so I need to think about this more. For now if I just set the flag so that pattern is the same for
                                 # the ones flagged, you'll have to use the type of run for that point to determine how to interpret the time values. 
@@ -596,15 +596,15 @@ while startover==True:
                                 #posttokafka=devname+'.'+currentClass[currentClass.rindex(' ')+1:]+'.env.'+ devlist[retindex][1]+'.validator '+ str(int(currenttime-lastpointtime)) + ' ' + str(int(currenttime))
                                 posttokafka='validator,collector='+devlist[retindex][1]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' pointage='+str(
                                     int(currenttime-lastpointtime)) + ',pointmissed='+missedcount+',timepoint='+str(currenttime)+' ' + str(int((timeiterationstart-300)*1000000000))
-                                try:
-                                    if scriptmode in {'both','late'}:
+                                if scriptmode in {'both','late'}:
+                                    try:
                                         send = producer.send('lineformat', bytes(posttokafka, 'utf-8'))
-                                    pass
-                                except:
-                                    Print('Error posting to kafka.')
+                                        pass
+                                    except:
+                                        Print('Error posting to kafka.')
+                                    if missedcount=='1':
+                                        print(posttokafka)
                                 #print(devlist[retindex],datetime.datetime.fromtimestamp(lastpointtime).strftime('%c'))
-                                if missedcount=='1':
-                                    print(posttokafka)
                             if iterationcount==0:
                                 devreporting.extend([devlist[retindex]])
                                 toinspect+=1
