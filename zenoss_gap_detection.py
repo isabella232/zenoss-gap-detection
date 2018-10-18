@@ -13,7 +13,7 @@ import configparser
 try:
     sys.argv[1]
 except:
-    sys.argv = [sys.argv[0], 'default', 'point', 1539849300]#present,historical,cleanup,pointforward,point
+    sys.argv = [sys.argv[0], 'default', 'both', 'realtime', 1539849300, 1539849300]#late,gap,both;realtime,cleanup,pointforward,point,range
 
 
 class loadConfig():
@@ -85,7 +85,8 @@ class loadConfig():
 configValues=loadConfig(sys.argv[1],('' if 'HOME' not in os.environ else os.environ['HOME']+'/creds.cfg'))
 
 envhosts={configValues.config['url'].split('.')[1]}
-scriptrole=sys.argv[2]
+scriptmode=sys.argv[2]
+scripttiming=sys.argv[3]
 
 if sys.argv[1]=='default':
     devmode=True
@@ -98,7 +99,7 @@ else:
     logfile='d:'
     loglevel='INFO'#WARNING'
     
-logfile+='/tmp/zenossCheckGaps' + sys.argv[1] + scriptrole+'.log'
+logfile+='/tmp/zenossCheckGaps' + sys.argv[1] + scriptmode+  scripttiming+'.log'
 producer = KafkaProducer(bootstrap_servers=[configValues.config['kafka']])
 deviceClasslist=configValues.config['classes']
 
@@ -232,8 +233,8 @@ zheaders={"content-type":"application/json","Accept":"application/json"}
 zauth=( configValues.config['username'], configValues.config['password'])
 startover=True
 
-print('Script mode:',scriptrole)
-log.info({'scriptrole':scriptrole})
+print('Script mode:',scriptmode,'Script timing:',scripttiming)
+log.info({'scriptmode':scriptmode,'scripttiming':scripttiming})
 
 while startover==True:
     startover=False
@@ -297,7 +298,7 @@ while startover==True:
        devreporting[envhost]=[]
 
     iterationcount=0
-    if scriptrole not in {'pointforward','point'}:
+    if scripttiming in {'realtime','cleanup'}:
         sleeptime=300-time.time()+int(time.time()/5/60)*5*60
         print('Sleeping',sleeptime,'seconds to wait for the 5 minute interval.',end='')
         log.info({'Sleeping to wait for 5 minute interval seconds':str(sleeptime)})
@@ -311,11 +312,11 @@ while startover==True:
             sleeptime-=5
         print('')
 
-    if devmode==True and scriptrole not in {'pointforward','point'}:
+    if devmode==True and scripttiming in {'realtime','cleanup'}:
         iterationlimit=2
         iterationtarget=time.time()+300
-        timeiterationstart=time.time()#timepoint#backpop
-    elif scriptrole not in {'pointforward','point'}:
+        timeiterationstart=time.time()
+    elif scripttiming in {'realtime','cleanup'}:
         targettime=time.time()-10.5*60*60#run until 10:30 GMT
         iterationlimit=(60*60*24-1-targettime+int(targettime/60/60/24)*60*60*24)/60/5
         iterationtarget=time.time()+(60*60*24-290-targettime+int(targettime/60/60/24)*60*60*24)
@@ -324,14 +325,19 @@ while startover==True:
         log.info({'Set iterations to finish in ' + str(iterationlimit*5/60) + ' hours. Count':str(iterationlimit),'iterationtarget':str(iterationtarget)})
         timeiterationstart=time.time()#timepoint#backpop
     else:
-        timeiterationstart=sys.argv[3]
-        if scriptrole=='point':
-            iterationtarget=sys.argv[3]+1
+        timeiterationstart=sys.argv[4]
+        if scripttiming=='point':
+            iterationtarget=sys.argv[4]+1
             iterationlimit=1
-        else:
+        elif scripttiming=='pointforward':
             iterationtarget=time.time()-15*60# can only run up to then due to difference in "present" calculation in real-time
             iterationlimit=10000#arbitrary large for over 30 days
-
+        elif scripttiming=='range':
+            iterationtarget=sys.argv[5]
+            iterationlimit=10000#arbitrary large for over 30 days...guess could calculate, but why?
+        else:
+            raise ValueError ('Unknown value for scripttiming')
+            
     #for timepoint in {1538730900}:#1538694900}:#1538677800,1538678100,1538678400,1538678700,1538679300,1538679600}:
     while timeiterationstart<iterationtarget and iterationcount<iterationlimit and startover==False:
         for envhost in envhosts:
@@ -343,7 +349,7 @@ while startover==True:
             progress=0
             if iterationcount!=0:
                 print('')
-            elif scriptrole not in {'pointforward','point'}:
+            elif scripttiming=='realtime':
                 zparams=dict(start='20d-ago',end='now',series=True,returnset='LAST',metrics=[])
                 #zparams=dict(start='1d-ago',end=timeiterationstart,series=True,returnset='LAST',metrics=[])#backpop#if want to go back a full day will need to improve
             else:
@@ -353,12 +359,12 @@ while startover==True:
             retindex=0
             classDict={}
             collectorDict={}
-            if scriptrole not in {'pointforward','point'}:
+            if scripttiming in {'realtime'}:
                 currenttime=time.time()#timepoint#backpop
             else:
                 currenttime=timeiterationstart
             groupedpingcount=[0,0,0,0,0,0,0,0,0,0,0,0]
-            posttokafka='validator,collector='+scriptrole+',environment='+envhost+' gapcount=0,gapeendtime='+str(int(currenttime))+ ' ' + str(int(currenttime*1000000000))
+            posttokafka='validator,collector='+scriptmode+',environment='+envhost+' gapcount=0,gapeendtime='+str(int(currenttime))+ ' ' + str(int(currenttime*1000000000))
             print(posttokafka)
             log.info({'kafka signal post':posttokafka})
             try:
@@ -407,7 +413,7 @@ while startover==True:
                         
                     # ---- historical gap list expansion
 
-                    if scriptrole=='historical' or scriptrole=='pointforward' or scriptrole=='point':
+                    if scriptmode in {'gap','both'}:
                         previouslostpoints=0
                         failoverdetect=0
                         trunchistory=0
@@ -533,7 +539,7 @@ while startover==True:
                     groupedpingevents=[currenttime-60*5,currenttime-60*10,currenttime-60*15,
                                        currenttime-60*20,currenttime-60*30,currenttime-60*40,
                                        currenttime-60*50,currenttime-60*60,currenttime-60*75,currenttime-60*90]
-                    if scriptrole=='present' or scriptrole=='pointforward' or iterationcount==0:
+                    if scriptmode in {'late','both'} or iterationcount==0:
                         for lastpoint in pointlist['results']:
                             if 'datapoints' in lastpoint:#['queryStatus']['status'] not in ['ERROR','WARNING'] 
                                 lastpointtime=lastpoint['datapoints'][0]['timestamp']
@@ -589,7 +595,7 @@ while startover==True:
                                     # unfortunately that will set ultra-current datapoints (e.g. <5 minutes) to negative, throwing off the way everything
                                     # else is done, so I need to think about this more. For now if I just set the flag so that pattern is the same for
                                     # the ones flagged, you'll have to use the type of run for that point to determine how to interpret the time values. 
-                                    if currenttime-lastpointtime>11*60 or (currenttime-lastpointtime>6*60 and scriptrole!='present'):
+                                    if currenttime-lastpointtime>11*60 or (currenttime-lastpointtime>6*60 and scripttiming!='realtime'):
                                         missedcount='1'
                                     else:
                                         missedcount='0'
@@ -597,7 +603,7 @@ while startover==True:
                                     posttokafka='validator,collector='+devlist[envhost][retindex][1]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' pointage='+str(
                                         int(currenttime-lastpointtime)) + ',pointmissed='+missedcount+',timepoint='+str(currenttime)+' ' + str(int((timeiterationstart-300)*1000000000))
                                     try:
-                                        if scriptrole in {'present','pointforward','point'}:
+                                        if scriptmode in {'both','late'}:
                                             send = producer.send('lineformat', bytes(posttokafka, 'utf-8'))
                                         pass
                                     except:
@@ -610,12 +616,13 @@ while startover==True:
                                     toinspect+=1
                             retindex+=1
                     pointlist={}
-                    if scriptrole!='pointforward':
+                    if scripttiming=='realtime':
                         zparams=dict(start='1d-ago',end='now',series=True,returnset='LAST',metrics=[])
                         #zparams=dict(start='1d-ago',end=timepoint,series=True,returnset='LAST',metrics=[])#seems like wrong indent, but needs to clear metrics=[], but probably needs to be at top#backpop
                     else:
                         zparams=dict(start=timeiterationstart-24*60*60,end=timeiterationstart,series=True,returnset='LAST',metrics=[])
-                        iterationtarget=time.time()
+                        if scripttiming=='pointforward':
+                            iterationtarget=time.time()
                     
                 
             if iterationcount==0:
@@ -624,7 +631,7 @@ while startover==True:
                 devlist[envhost]=devreporting[envhost]
                 total[envhost]=toinspect
 
-            if scriptrole=='present':
+            if scriptmode in {'late','both'}:
                 print('As of',datetime.datetime.now(),'newest datapoint is',(currenttime+time.time()-timedorun-maxtime)/60,'minutes old (',(currenttime-maxtime)/60/60/24,'days)')
                 log.info({'Newest datapoint minutes old':str((currenttime+time.time()-timedorun-maxtime)/60)})
                 print('Ones within (minutes):')
@@ -662,7 +669,7 @@ while startover==True:
 
         #sleeptime=timeiterationstart-time.time()
         sleeptime=-time.time()+int(time.time()/5/60)*5*60
-        if iterationcount<iterationlimit and startover==False and scriptrole not in {'pointforward'}:    
+        if iterationcount<iterationlimit and startover==False and scripttiming not in {'pointforward','range'}:    
             if devmode==True:
                 sleeptime+=5
             else:
@@ -677,7 +684,7 @@ while startover==True:
                 print('.',end='')
                 sleeptime-=5
             print('')
-        if scriptrole=='pointforward':
+        if scripttiming in {'pointforward','range'}:
             timeiterationstart+=300
             zparams=dict(start=timeiterationstart-24*60*60,end=timeiterationstart,series=True,returnset='LAST',metrics=[]) #redundant...need to review how I'm setting this
         else:
