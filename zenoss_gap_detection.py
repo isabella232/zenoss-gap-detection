@@ -663,7 +663,7 @@ while startover==True:
 
         #sleeptime=timeiterationstart-time.time()
         sleeptime=-time.time()+int(time.time()/5/60)*5*60
-        if iterationcount<iterationlimit and startover==False and scripttiming not in {'pointforward','range'}:    
+        if iterationcount<iterationlimit and timeiterationstart+300<iterationtarget and startover==False and scripttiming not in {'pointforward','range'}:    
             if devmode==True:
                 sleeptime+=5
             else:
