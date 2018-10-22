@@ -13,7 +13,7 @@ import configparser
 try:
     sys.argv[1]
 except:
-    sys.argv = [sys.argv[0], 'default', 'gap', 'point', 1539880800, 1539849300]#late,gap,both;realtime,cleanup,pointforward,point,range
+    sys.argv = [sys.argv[0], 'default', 'both', 'range', 1540204200, 1540207800]#late,gap,both;realtime,cleanup,pointforward,point,range
 
 
 class loadConfig():
@@ -328,7 +328,7 @@ while startover==True:
             iterationtarget=time.time()-15*60# can only run up to then due to difference in "present" calculation in real-time
             iterationlimit=10000#arbitrary large for over 30 days
         elif scripttiming=='range':
-            iterationtarget=sys.argv[5]
+            iterationtarget=sys.argv[5]+1
             iterationlimit=10000#arbitrary large for over 30 days...guess could calculate, but why?
         else:
             raise ValueError ('Unknown value for scripttiming')
@@ -616,7 +616,7 @@ while startover==True:
                 else:
                     zparams=dict(start=timeiterationstart-24*60*60,end=timeiterationstart,series=True,returnset='LAST',metrics=[])
                     if scripttiming=='pointforward':
-                        iterationtarget=time.time()
+                        iterationtarget=time.time()-15*60
                 
             
         if iterationcount==0:
