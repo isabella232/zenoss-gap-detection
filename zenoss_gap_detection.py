@@ -13,7 +13,7 @@ import configparser
 try:
     sys.argv[1]
 except:
-    sys.argv = [sys.argv[0], 'default', 'both', 'range', 1540204200, 1540207800]#late,gap,both;realtime,cleanup,pointforward,point,range
+    sys.argv = [sys.argv[0], 'default', 'both', 'realtime', 1540204200, 1540207800]#late,gap,both;realtime,cleanup,pointforward,point,range
 
 
 class loadConfig():
@@ -334,6 +334,7 @@ while startover==True:
             raise ValueError ('Unknown value for scripttiming')
             
     #for timepoint in {1538730900}:#1538694900}:#1538677800,1538678100,1538678400,1538678700,1538679300,1538679600}:
+    everythingsLate=True
     while timeiterationstart<iterationtarget and iterationcount<iterationlimit and startover==False:
         toinspect=0
         maxtime=0
@@ -501,18 +502,22 @@ while startover==True:
                                     metriclongname=gapeval['results'][0]['metric']
                                     nospaceclass=metriclongname[metriclongname.index('/')+19:metriclongname.rindex('devices/')-1].replace(' ','-')
                                     devname=metriclongname[metriclongname.index('devices/')+8:metriclongname.rindex('/')].replace(' ','-')
-                                    posttokafka='validator,collector='+metriclongname[0:metriclongname.index('/')]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' gapseconds='+str(
-                                        int(gapseconds)) + ',gapcount='+str(lostpoints)+',timepoint='+str(timewindowend)+' ' + str(int(timewindowend*1000000000))
+                                    posttokafka='validator,collector='+metriclongname[0:metriclongname.index(
+                                        '/')]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' gapseconds='+str(
+                                        int(gapseconds)) + ',gapcount='+str(lostpoints)+',timepoint='+str(
+                                            timewindowend)+' ' + str(int(timewindowend*1000000000))
                                     print(posttokafka)
                                     log.info({'kafka summary':posttokafka})
                                     pointstoallocate=lostpoints
                                     posttotalstring=',gaptotalseconds='+str(int(gapseconds)) + ',gaptotalcount='+str(lostpoints)
                                     intervalpoint=timewindowend
-                                    while pointstoallocate>-1 and intervalpoint>trunchistory:
+                                    while pointstoallocate>-1 and intervalpoint>trunchistory and (
+                                        iterationcount==0 or everythingsLate==False or intervalpoint>timescriptstart):
                                         intervalpoint=int((timewindowend-180-(lostpoints-pointstoallocate)*5*60)/5/60)*5*60
                                         posttokafka='validator,collector='+metriclongname[0:metriclongname.index(
                                             '/')]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' gapcount='+(
-                                                '1' if pointstoallocate!=0 else '0')+',gapendtime='+str(timewindowend)+posttotalstring+' ' + str(intervalpoint*1000000000)
+                                                '1' if pointstoallocate!=0 else '0')+',gapendtime='+str(
+                                                    timewindowend)+posttotalstring+' ' + str(intervalpoint*1000000000)
                                         print(posttokafka)
                                         if posttotalstring!='':
                                             log.info({'kafka first post':posttokafka})
@@ -593,6 +598,7 @@ while startover==True:
                                     missedcount='1'
                                 else:
                                     missedcount='0'
+                                    everythingsLate=False
                                 #posttokafka=devname+'.'+currentClass[currentClass.rindex(' ')+1:]+'.env.'+ devlist[retindex][1]+'.validator '+ str(int(currenttime-lastpointtime)) + ' ' + str(int(currenttime))
                                 posttokafka='validator,collector='+devlist[retindex][1]+',class='+nospaceclass+',environment='+envhost+',host='+devname+' pointage='+str(
                                     int(currenttime-lastpointtime)) + ',pointmissed='+missedcount+',timepoint='+str(currenttime)+' ' + str(int((timeiterationstart-300)*1000000000))
@@ -626,7 +632,8 @@ while startover==True:
             total=toinspect
 
         if scriptmode in {'late','both'}:
-            print('As of',datetime.datetime.now(),'newest datapoint is',(currenttime+time.time()-timedorun-maxtime)/60,'minutes old (',(currenttime-maxtime)/60/60/24,'days)')
+            print('As of',datetime.datetime.now(),'newest datapoint is',(
+                currenttime+time.time()-timedorun-maxtime)/60,'minutes old (',(currenttime-maxtime)/60/60/24,'days)')
             log.info({'Newest datapoint minutes old':str((currenttime+time.time()-timedorun-maxtime)/60)})
             print('Ones within (minutes):')
             log.info({'Ones within:':'minutes'})
@@ -663,7 +670,8 @@ while startover==True:
 
         #sleeptime=timeiterationstart-time.time()
         sleeptime=-time.time()+int(time.time()/5/60)*5*60
-        if iterationcount<iterationlimit and timeiterationstart+300<iterationtarget and startover==False and scripttiming not in {'pointforward','range'}:    
+        if iterationcount<iterationlimit and timeiterationstart+300<iterationtarget and (
+                startover==False and scripttiming not in {'pointforward','range'}):    
             if devmode==True:
                 sleeptime+=5
             else:
