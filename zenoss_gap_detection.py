@@ -354,7 +354,7 @@ while startover==True:
         retindex=0
         classDict={}
         collectorDict={}
-        if scripttiming in {'realtime'}:
+        if scripttiming in {'realtime'} and (scriptmode!='gap' and time.time()-timeiterationstart<299):
             currenttime=time.time()#timepoint#backpop
         else:
             currenttime=timeiterationstart
@@ -675,7 +675,8 @@ while startover==True:
             if devmode==True:
                 sleeptime+=5
             else:
-                sleeptime+=300
+                if not scriptmode == 'gap' and time.time()-timeiterationstart<300:#while 'both' has gap, can't delay it too; this covers clean and realtime
+                    sleeptime+=300
             print('Sleeping',sleeptime,'seconds',end='')
             log.info({'Sleeping to wait for 5 minute interval seconds':str(sleeptime)})
             while sleeptime>0:
@@ -686,7 +687,7 @@ while startover==True:
                 print('.',end='')
                 sleeptime-=5
             print('')
-        if scripttiming in {'pointforward','range'}:
+        if scripttiming in {'pointforward','range'} or (scriptmode == 'gap' and scripttiming=='realtime' and time.time()-timeiterationstart>300):
             timeiterationstart+=300
             zparams=dict(start=timeiterationstart-24*60*60,end=timeiterationstart,series=True,returnset='LAST',metrics=[]) #redundant...need to review how I'm setting this
         else:
