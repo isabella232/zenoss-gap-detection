@@ -610,6 +610,7 @@ while startover==True:
                                         Print('Error posting to kafka.')
                                     if missedcount=='1':
                                         print(posttokafka)
+                                        log.info({'late point':posttokafka})
                                 #print(devlist[retindex],datetime.datetime.fromtimestamp(lastpointtime).strftime('%c'))
                             if iterationcount==0:
                                 devreporting.extend([devlist[retindex]])
