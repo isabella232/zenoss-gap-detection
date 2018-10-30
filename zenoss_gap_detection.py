@@ -669,14 +669,13 @@ while startover==True:
 
         iterationcount+=1
 
-        #sleeptime=timeiterationstart-time.time()
         sleeptime=-time.time()+int(time.time()/5/60)*5*60
         if iterationcount<iterationlimit and timeiterationstart+300<iterationtarget and (
                 startover==False and scripttiming not in {'pointforward','range'}):    
             if devmode==True:
                 sleeptime+=5
             else:
-                if not scriptmode == 'gap' and time.time()-timeiterationstart<300:#while 'both' has gap, can't delay it too; this covers clean and realtime
+                if scriptmode != 'gap' or time.time()-timeiterationstart<300:#while 'both' has gap, can't delay it too; this covers clean and realtime
                     sleeptime+=300
             print('Sleeping',sleeptime,'seconds',end='')
             log.info({'Sleeping to wait for 5 minute interval seconds':str(sleeptime)})
@@ -692,5 +691,5 @@ while startover==True:
             timeiterationstart+=300
             zparams=dict(start=timeiterationstart-24*60*60,end=timeiterationstart,series=True,returnset='LAST',metrics=[]) #redundant...need to review how I'm setting this
         else:
-            timeiterationstart=time.time()#timepoint#backpop
+            timeiterationstart=time.time()
 
