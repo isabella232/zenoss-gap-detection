@@ -312,7 +312,7 @@ while startover==True:
         iterationtarget=time.time()+300
         timeiterationstart=time.time()
     elif scripttiming in {'realtime','cleanup'}:
-        targettime=time.time()-10.5*60*60#run until 10:30 GMT
+        targettime=time.time()-5.5*60*60+time.localtime().tm_gmtoff#run until 05:30 local time
         iterationlimit=(60*60*24-1-targettime+int(targettime/60/60/24)*60*60*24)/60/5
         iterationtarget=time.time()+(60*60*24-290-targettime+int(targettime/60/60/24)*60*60*24)
         print('Set iterations to',iterationlimit,'completion in',iterationlimit*5/60,'hours.')
